@@ -7,4 +7,4 @@ import argparse
 
 from utils.EventLog import EventLog
 dd = EventLog('BPIC12')
-print(dd.log)
+print(dd.attr_keys)
