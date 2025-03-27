@@ -1,0 +1,7 @@
+paper_work/
+/.vscode
+eventlogs/*.csv
+!eventlogs/.gitkeep
+scratch.ipynb
+
+eventlogs/cache/*.pkl.gz
