@@ -40,6 +40,8 @@ def GenerateGraphs(splitlog, onehot_dict, event_attrs) -> list:
         sublog['activity_order'] = sublog['name'].map(actOrderMap)
         sublog['onehot'] = sublog['name'].map(onehot_dict)
 
+        # TODO: first graph generation도 augm.py로 이동
+
         # /*1st graph (Activity as node) -> directly follows graph style
 
         ### Node Features (onehot acitivities)
@@ -72,10 +74,10 @@ def GenerateGraphs(splitlog, onehot_dict, event_attrs) -> list:
         # Get Variant Label
         variant = sublog['@variant'].values[0]
 
-        g1 = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
+        g1 = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)  # View 1
 
         # /*2nd graph (Event as node)
-        g2 = AugmentGraph(g1)
+        g2 = AugmentGraph(g1)                                       # View 2
 
         GraphMatch = PairData(x_s=g1.x, edge_index_s=g1.edge_index, edge_attr_s=g1.edge_attr,
                 x_t=g2.edge_attr, edge_index_t=g2.edge_attr, edge_attr_t=g2.edge_attr,
