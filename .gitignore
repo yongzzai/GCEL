@@ -4,3 +4,4 @@ eventlogs/*.csv
 !eventlogs/.gitkeep
 
 eventlogs/cache/*.pkl.gz
+scratch.ipynb

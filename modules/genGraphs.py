@@ -2,9 +2,7 @@
 @author: Y.J.Lee
 '''
 
-from .augm import AugmentGraph
-import torch
-import numpy as np
+from .augmGraphs import genEventGraph, genActivityGraph
 from torch_geometric.data import Data
 import ray
 
@@ -40,44 +38,14 @@ def GenerateGraphs(splitlog, onehot_dict, event_attrs) -> list:
         sublog['activity_order'] = sublog['name'].map(actOrderMap)
         sublog['onehot'] = sublog['name'].map(onehot_dict)
 
-        # TODO: first graph generation도 augm.py로 이동
+        # /*1st graph (Activity as node)
+        g1 = genActivityGraph(sublog, onehot_dict, event_attrs)      # View 1
 
-        # /*1st graph (Activity as node) -> directly follows graph style
-
-        ### Node Features (onehot acitivities)
-        num_nodes = sublog['activity_order'].nunique() + 1 # synthetic start node
-        x = np.zeros((num_nodes, len(onehot_dict)))        # syn-node remain zero
-
-        for idx, act_order in enumerate(sublog['activity_order'].unique()):
-            x[act_order] = list(sublog[sublog['activity_order']==act_order]['onehot'].values[0])
-
-        # x[sublog['activity_order'].values] = sublog['onehot'].values
-        x = torch.tensor(x, dtype=torch.float)
-
-        ### Edges
-        edges = [(0, sublog.loc[0,'activity_order'])] + [
-            [sublog['activity_order'][idx0], sublog['activity_order'][idx0+1]]
-                            for idx0 in range(len(sublog)-1)]
-        
-        edge_index = torch.tensor(edges, dtype=torch.long).t().contiguous()
-
-        ### Edge Attributes
-        if len(event_attrs)>0:
-            selected_cols = ['event_position'] + event_attrs
-            edge_attr = np.array([sublog.loc[idx, selected_cols] for idx in range(len(sublog))])
-        else:
-            edge_attr = np.array([sublog.loc[idx, 'event_position'] for idx in range(len(sublog))])
-        edge_attr = edge_attr.astype(np.int16)
-
-        edge_attr = torch.tensor(edge_attr, dtype=torch.long)
+        # /*2nd graph (Event as node)
+        g2 = genEventGraph(g1)                                       # View 2
 
         # Get Variant Label
         variant = sublog['@variant'].values[0]
-
-        g1 = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)  # View 1
-
-        # /*2nd graph (Event as node)
-        g2 = AugmentGraph(g1)                                       # View 2
 
         GraphMatch = PairData(x_s=g1.x, edge_index_s=g1.edge_index, edge_attr_s=g1.edge_attr,
                 x_t=g2.edge_attr, edge_index_t=g2.edge_attr, edge_attr_t=g2.edge_attr,

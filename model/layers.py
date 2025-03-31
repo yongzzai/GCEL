@@ -3,7 +3,7 @@
 '''
 
 import torch.nn as nn
-from torch_geometric.nn import TransformerConv, PositionalEncoding, MLP
+from torch_geometric.nn import TransformerConv, PositionalEncoding, MLP, Set2Set
 
 class FirstViewPreLayer(nn.Module):
     def __init__(self, node_dim:int = None, edge_dim:int = None, hidden_dim:int = 64):
@@ -15,7 +15,7 @@ class FirstViewPreLayer(nn.Module):
         2. Edges: representing the relationships between activities
         3. Edge features: representing the attributes of the events i.e.,event ordering, event attributes
 
-        :parm node_dim: The initial dimension of the node features.
+        :param node_dim: The initial dimension of the node features.
         :param edge_dim: The initial dimension of the edge features.
         :param hidden_dim: The dimension of the hidden.
         '''
@@ -40,6 +40,7 @@ class FirstViewPreLayer(nn.Module):
 
 
 class SecondViewPreLayer(nn.Module):
+    
     def __init__(self, node_dim:int = None, edge_dim:int = None, hidden_dim:int = 64):
         super(SecondViewPreLayer, self).__init__()
         '''
@@ -92,6 +93,8 @@ class GraphEncoder(nn.Module):
 
         self.norm = nn.LayerNorm(hidden_dim) 
         self.linear = nn.Linear(hidden_dim, hidden_dim)
+        self.pooling = Set2Set(hidden_dim,)
+
         self.mlp = MLP([hidden_dim, hidden_dim*2, hidden_dim/2], norm=None)
     
     def _SetLayers(self, hidden_dim, num_layers, dropout):

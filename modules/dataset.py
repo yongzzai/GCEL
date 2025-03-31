@@ -26,14 +26,16 @@ class Dataset(object):
         self.CacheFile = os.path.join(CachePath, f'Graph_{self.EventLog.logname}.pkl.gz')
         
         if not os.path.exists(self.CacheFile):
-            print("Cache not detected, Creating graphs...")
+            print("Cached graphs are not detected, Creating graphs...")
             self.ProcessLog()   #/*preprocess event_log
             self.ConvertLog()   #/*convert log to graphs
+            print(f"Graphs created and saved to {self.CacheFile}")
         
         else:
-            print("Loading cached graphs...")
+            print("Cached graphs are detected, Loading graphs...")
             with open(self.CacheFile, 'rb') as f:
                 self.graphs = pickle.load(f)
+            print("Graphs loaded")
 
 
     def ProcessLog(self):

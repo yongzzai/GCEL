@@ -12,6 +12,7 @@ import argparse
 
 from modules.dataset import Dataset
 dd = Dataset('BPIC12')
+
 # print(dd.graphs[0])
 # print(dd.graphs[0].x_s)
 # print(dd.graphs[0].edge_index_s)
