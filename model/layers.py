@@ -29,14 +29,17 @@ class FirstViewPreLayer(nn.Module):
         self.num_attr = edge_dim - 1    # first dimension is the event ordering
 
         self.PosEnc = PositionalEncoding(out_channels=hidden_dim)
-        self.AttrEmbedder = nn.ModuleList([nn.Embedding(1000, hidden_dim) for _ in range(self.num_attr)])   # Shape (num_events, hidden_dim*num_attr)
+        self.AttrEmbedder = nn.ModuleList([nn.Embedding(100, hidden_dim) for _ in range(self.num_attr)])   # Shape (num_events, hidden_dim*num_attr)
 
         self.EdgeTransform = nn.Sequential(
                              nn.Linear(int(hidden_dim*self.num_attr),hidden_dim),
                              nn.LayerNorm(hidden_dim))         # Shape (num_edges, hidden_dim)
     
-    def forward(self,):
-        pass    #TODO
+    def forward(self, x_s, edge_index_s, edge_attr_s, batch_s):
+        '''
+        for the preprocessing of the first view graph.
+        '''
+        
 
 
 class SecondViewPreLayer(nn.Module):
@@ -91,9 +94,9 @@ class GraphEncoder(nn.Module):
 
         self.Convs, self.DOs, self.LNs, = self._SetLayers(hidden_dim, num_layers, dropout)
 
-        self.norm = nn.LayerNorm(hidden_dim) 
+        self.norm = nn.LayerNorm(hidden_dim)
         self.linear = nn.Linear(hidden_dim, hidden_dim)
-        self.pooling = Set2Set(hidden_dim,)
+        self.pooling = Set2Set(hidden_dim, processing_steps=4)
 
         self.mlp = MLP([hidden_dim, hidden_dim*2, hidden_dim/2], norm=None)
     
@@ -107,7 +110,7 @@ class GraphEncoder(nn.Module):
                                          heads=4,
                                          edge_dim=hidden_dim,
                                          beta=True,
-                                         dropout=dropout,))
+                                         dropout=dropout))
             Lins.append(nn.Linear(hidden_dim*4, hidden_dim))
             LNs.append(nn.LayerNorm(hidden_dim))
             Acts.append(nn.GELU())

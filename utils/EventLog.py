@@ -32,6 +32,8 @@ class EventLog(object):
         self.log['name'] = self.log['name'].astype(str)
         self.log['timestamp'] = self.log['timestamp'].apply(lambda x: str(x).split('+')[0].replace('T', ' '))
         self.log['timestamp'] = pd.to_datetime(self.log['timestamp'])
+
+        self.log = self.log.reset_index(drop=True)
         
     def load(self, LogName):
         FileName = Path(str(LogName) + '.csv')

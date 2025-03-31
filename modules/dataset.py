@@ -51,8 +51,8 @@ class Dataset(object):
         self.EventLog.log = GetVariantLabels(self.EventLog.log)
 
         # /*label encoding attrs
-        if len(self.EventLog.attr_keys) > 0:
-            for key in self.EventLog.attr_keys:
+        if len(self.EventLog.event_attrs) > 0:
+            for key in self.EventLog.event_attrs:
                 unique_values = set(self.EventLog.log[key])
                 label_map = {label:idx+1 for idx, label in enumerate(unique_values)}
                 self.EventLog.log[key] = self.EventLog.log[key].map(label_map)

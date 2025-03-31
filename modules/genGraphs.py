@@ -2,21 +2,9 @@
 @author: Y.J.Lee
 '''
 
+from utils.PairData import PairData
 from .augmGraphs import genEventGraph, genActivityGraph
-from torch_geometric.data import Data
 import ray
-
-
-
-# /*PairData can contain two pyg Data objects concurrently
-class PairData(Data):
-    def __inc__(self, key, value, *args, **kwargs):
-        if key == 'edge_index_s':
-            return self.x_s.size(0)
-        if key == 'edge_index_t':
-            return self.x_t.size(0)
-        return super().__inc__(key, value, *args, **kwargs)
-
 
 @ray.remote
 def GenerateGraphs(splitlog, onehot_dict, event_attrs) -> list:
@@ -27,13 +15,13 @@ def GenerateGraphs(splitlog, onehot_dict, event_attrs) -> list:
     
     PairGraphs = []
 
-    for cidx, caseid in enumerate(splitlog['case_id'].unique()):
+    for _, caseid in enumerate(splitlog['case_id'].unique()):
 
         sublog = splitlog[splitlog['case_id']==caseid]
         sublog = sublog.reset_index(drop=True)
         subUniqActivity = sublog['name'].unique()
         actOrderMap = {act: idx+1 for idx, act in enumerate(subUniqActivity)}
-        
+
         ### activity order (for connecting nodes)
         sublog['activity_order'] = sublog['name'].map(actOrderMap)
         sublog['onehot'] = sublog['name'].map(onehot_dict)
@@ -47,10 +35,11 @@ def GenerateGraphs(splitlog, onehot_dict, event_attrs) -> list:
         # Get Variant Label
         variant = sublog['@variant'].values[0]
 
-        GraphMatch = PairData(x_s=g1.x, edge_index_s=g1.edge_index, edge_attr_s=g1.edge_attr,
-                x_t=g2.edge_attr, edge_index_t=g2.edge_attr, edge_attr_t=g2.edge_attr,
-                varlabel = int(variant), caseid=caseid)
+        # Store view1 and view2 graphs in a single pyg-Data object
+        GraphPair = PairData(x_s=g1.x, edge_index_s=g1.edge_index, edge_attr_s=g1.edge_attr,
+                              x_t=g2.x, edge_index_t=g2.edge_index, edge_attr_t=g2.edge_attr,
+                              varlabel = int(variant), caseid=caseid)
 
-        PairGraphs.append(GraphMatch)
+        PairGraphs.append(GraphPair)
     
     return PairGraphs
