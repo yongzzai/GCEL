@@ -9,7 +9,7 @@ import argparse
 #parser.add_argument('-r','--runtype', type=str, required=True, help="one of -> 'create_graphs', 'train', 'test', 'predict'")
 #args = parser.parse_args()
 
-from modules.dataset import Dataset
+from dsprovider.dataset import Dataset
 dd = Dataset('BPIC12')
 
 
