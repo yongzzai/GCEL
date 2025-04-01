@@ -6,6 +6,119 @@ import torch
 import torch.nn as nn
 from torch_geometric.nn import TransformerConv, PositionalEncoding, MLP, Set2Set
 
+
+class GraphEncoder(nn.Module):
+    
+    def __init__(self, node_dim:int = None, edge_dim:int = None, hidden_dim:int = 64, num_layers:int = 1, dropout:float = 0.3):
+        super(GraphEncoder, self).__init__()
+        '''
+        This layer is for the encoding of the graph.
+        Structure of the encoder:
+        TransformerConv -> Linear -> LayerNorm -> GELU -> Dropout
+
+        :param hidden_dim: The dimension of the hidden.
+        :param latent_dim: The dimension of the latent.
+        :param num_layers: The number of layers.
+        :param dropout: The dropout rate.
+        '''
+
+        self.FirstViewPreLayer = FirstViewPreLayer(node_dim=node_dim, edge_dim=edge_dim, hidden_dim=hidden_dim)
+        self.SecondViewPreLayer = SecondViewPreLayer(node_dim=edge_dim, edge_dim=node_dim, hidden_dim=hidden_dim)
+
+        self.Convs, self.DOs, self.LNs, self.Acts, self.DOs = self._SetLayers(hidden_dim, num_layers, dropout)
+
+        self.norm = nn.LayerNorm(hidden_dim)
+        self.linear = nn.Linear(hidden_dim, hidden_dim)
+        self.pooling = Set2Set(hidden_dim, processing_steps=4)
+
+        self.mlp = MLP([hidden_dim, hidden_dim*2, hidden_dim/2], norm=None)
+    
+    def _SetLayers(self, hidden_dim, num_layers, dropout):
+
+        Convs, Lins, LNs, Acts, DOs  = [nn.ModuleList() for _ in range(5)]
+
+        for i in range(num_layers):
+            Convs.append(TransformerConv(in_channels=hidden_dim,
+                                         out_channels=hidden_dim,
+                                         heads=4,
+                                         edge_dim=hidden_dim,
+                                         beta=True,
+                                         dropout=dropout))
+            Lins.append(nn.Linear(hidden_dim*4, hidden_dim))
+            LNs.append(nn.LayerNorm(hidden_dim))
+            Acts.append(nn.GELU())
+            DOs.append(nn.Dropout(dropout))
+
+        return Convs, Lins, LNs, Acts, DOs
+    
+    def forward(self, data, train:bool=True):
+        '''
+        input: Shape(num_nodes, hidden_dim), Shape(num_edges, hidden_dim)
+        '''
+        x_s, edge_index_s, edge_attr_s, batch_s = data.x_s, data.edge_index_s, data.edge_attr_s, data.x_s_batch
+        x_t, edge_index_t, edge_attr_t, batch_t = data.x_t, data.edge_index_t, data.edge_attr_t, data.x_t_batch
+
+        if train:
+            # First view
+            x1, e1 = self.FirstViewPreLayer(x_s, edge_attr_s)
+            
+            # TODO: masking node features of each graph in one batch
+
+            # Second view
+            x2, e2 = self.SecondViewPreLayer(x_t, edge_attr_t)
+
+            for idx in range(len(self.Convs)):
+                
+                x1_in = x1 if idx == 0 else h1
+                
+                h1 = self.Convs[idx](x1_in, edge_index_s, e1)
+                h1 = self.Lins[idx](h1)
+                h1 = self.LNs[idx](h1)
+                h1 = self.Acts[idx](h1)
+                h1 = self.DOs[idx](h1)
+
+                x2_in = x2 if idx == 0 else h2
+
+                h2 = self.Convs[idx](x2_in, edge_index_t, e2)
+                h2 = self.Lins[idx](h2)
+                h2 = self.LNs[idx](h2)
+                h2 = self.Acts[idx](h2)
+                h2 = self.DOs[idx](h2)
+            
+            z1, z2 = self.norm(h1), self.norm(h2)  # Shape (num_nodes, hidden_dim), (num_edges, hidden_dim)
+            z1, z2 = self.linear(z1), self.linear(z2)  # Shape (num_nodes, hidden_dim), (num_edges, hidden_dim)
+            z1, z2 = self.pooling(z1, batch_s), self.pooling(z2, batch_t) # Shape (num_graphs, hidden_dim*2)
+
+        # For test
+        else:
+            # First view
+            x1, e1 = self.FirstViewPreLayer(x_s, edge_attr_s)
+
+            for idx in range(len(self.Convs)):
+                
+                x1_in = x1 if idx == 0 else h1
+                
+                h1 = self.Convs[idx](x1_in, edge_index_s, e1)   # Shape(num_nodes, hidden_dim*4)
+                h1 = self.Lins[idx](h1)                         # Shape(num_nodes, hidden_dim)
+                h1 = self.LNs[idx](h1)
+                h1 = self.Acts[idx](h1)
+                h1 = self.DOs[idx](h1)
+                # Residual connection
+                h1 = h1 + x1_in
+
+            z1 = self.norm(h1)
+            z1 = self.linear(z1)
+            z1 = self.pooling(z1, batch_s)
+
+            return z1
+
+        dense_z1, dense_z2 = self.mlp(z1), self.mlp(z2)  # Shape (num_graphs, hidden_dim/2)
+
+        return z1, z2, dense_z1, dense_z2
+
+
+
+
 class FirstViewPreLayer(nn.Module):
     def __init__(self, node_dim:int = None, edge_dim:int = None, hidden_dim:int = 64):
         super(FirstViewPreLayer, self).__init__()
@@ -57,7 +170,7 @@ class FirstViewPreLayer(nn.Module):
             pos_vector = self.PosEnc(edge_attr_s[:,0]).repeat(1, self.num_attr)  # Shape (num_edges, hidden_dim)
             h_e = self.EdgeTransform(pos_vector)
 
-        return h_x, h_e
+        return h_x, h_e     # Shape (num_nodes, hidden_dim), (num_edges, hidden_dim)
 
 
 class SecondViewPreLayer(nn.Module):
@@ -111,50 +224,4 @@ class SecondViewPreLayer(nn.Module):
             pos_vector = self.PosEnc(x_t[:,0]).repeat(1, self.num_attr) # Shape (num_edges, hidden_dim)
             h_x = self.NodeTransform(pos_vector)
 
-        return h_x, h_e
-
-
-
-class GraphEncoder(nn.Module):
-    
-    def __init__(self, hidden_dim:int = 64, num_layers:int = 1, dropout:float = 0.3):
-        super(GraphEncoder, self).__init__()
-        '''
-        This layer is for the encoding of the graph.
-        Structure of the encoder:
-        TransformerConv -> Linear -> LayerNorm -> GELU -> Dropout
-
-        :param hidden_dim: The dimension of the hidden.
-        :param latent_dim: The dimension of the latent.
-        :param num_layers: The number of layers.
-        :param dropout: The dropout rate.
-        '''
-
-        self.Convs, self.DOs, self.LNs, = self._SetLayers(hidden_dim, num_layers, dropout)
-
-        self.norm = nn.LayerNorm(hidden_dim)
-        self.linear = nn.Linear(hidden_dim, hidden_dim)
-        self.pooling = Set2Set(hidden_dim, processing_steps=4)
-
-        self.mlp = MLP([hidden_dim, hidden_dim*2, hidden_dim/2], norm=None)
-    
-    def _SetLayers(self, hidden_dim, num_layers, dropout):
-
-        Convs, Lins, LNs, Acts, DOs  = [nn.ModuleList() for _ in range(5)]
-
-        for i in range(num_layers):
-            Convs.append(TransformerConv(in_channels=hidden_dim,
-                                         out_channels=hidden_dim,
-                                         heads=4,
-                                         edge_dim=hidden_dim,
-                                         beta=True,
-                                         dropout=dropout))
-            Lins.append(nn.Linear(hidden_dim*4, hidden_dim))
-            LNs.append(nn.LayerNorm(hidden_dim))
-            Acts.append(nn.GELU())
-            DOs.append(nn.Dropout(dropout))
-
-        return Convs, Lins, LNs, Acts, DOs
-    
-    def forward(self):
-        pass
+        return h_x, h_e     # Shape (num_nodes, hidden_dim), (num_edges, hidden_dim)
