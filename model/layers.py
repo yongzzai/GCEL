@@ -2,6 +2,7 @@
 @author: Y.J.Lee
 '''
 
+import torch
 import torch.nn as nn
 from torch_geometric.nn import TransformerConv, PositionalEncoding, MLP, Set2Set
 
@@ -29,17 +30,34 @@ class FirstViewPreLayer(nn.Module):
         self.num_attr = edge_dim - 1    # first dimension is the event ordering
 
         self.PosEnc = PositionalEncoding(out_channels=hidden_dim)
-        self.AttrEmbedder = nn.ModuleList([nn.Embedding(100, hidden_dim) for _ in range(self.num_attr)])   # Shape (num_events, hidden_dim*num_attr)
+        self.AttrEmbedder = nn.ModuleList([nn.Embedding(300, hidden_dim) for _ in range(self.num_attr)])   # Shape (num_events, hidden_dim*num_attr)
 
         self.EdgeTransform = nn.Sequential(
                              nn.Linear(int(hidden_dim*self.num_attr),hidden_dim),
                              nn.LayerNorm(hidden_dim))         # Shape (num_edges, hidden_dim)
     
-    def forward(self, x_s, edge_index_s, edge_attr_s, batch_s):
+    def forward(self, x_s, edge_attr_s):
         '''
         for the preprocessing of the first view graph.
         '''
-        
+        h_x = self.NodeTransform(x_s)  # Shape (num_nodes, hidden_dim)
+
+        if self.num_attr>0:
+
+            pos_vector = self.PosEnc(edge_attr_s[:,0]).repeat(1, self.num_attr)  # Shape (num_edges, hidden_dim*num_attr)
+            
+            embs = [self.AttrEmbedder[idx](edge_attr_s[:,idx+1]) for idx in range(self.num_attr)]
+            attr_embs = torch.cat(embs, dim=1)  # Shape (num_edges, hidden_dim*num_attr)
+
+            edge_emb = attr_embs + pos_vector  # Shape (num_edges, hidden_dim*num_attr)
+            h_e = self.EdgeTransform(edge_emb)  # Shape (num_deges, hidden_dim)
+
+        else:
+
+            pos_vector = self.PosEnc(edge_attr_s[:,0]).repeat(1, self.num_attr)  # Shape (num_edges, hidden_dim)
+            h_e = self.EdgeTransform(pos_vector)
+
+        return h_x, h_e
 
 
 class SecondViewPreLayer(nn.Module):
@@ -62,7 +80,7 @@ class SecondViewPreLayer(nn.Module):
         self.num_attr = node_dim - 1   # first dimension is the event ordering
 
         self.PosEnc = PositionalEncoding(out_channels=hidden_dim)
-        self.AttrEmbedder = nn.ModuleList([nn.Embedding(1000, hidden_dim) for _ in range(self.num_attr)])
+        self.AttrEmbedder = nn.ModuleList([nn.Embedding(300, hidden_dim) for _ in range(self.num_attr)])
 
         self.NodeTransform = nn.Sequential(
                              nn.Linear(int(hidden_dim*self.num_attr), hidden_dim),
@@ -73,8 +91,28 @@ class SecondViewPreLayer(nn.Module):
                              nn.Linear(edge_dim, hidden_dim),
                              nn.LayerNorm(hidden_dim))          # Shape (num_edges, hidden_dim)
 
-    def forward(self, x):
-        pass
+    def forward(self, x_t, edge_attr_t):
+        # edges
+        h_e = self.EdgeTransform(edge_attr_t) # Shape (num_edges, hidden_dim)
+
+        if self.num_attr>0:
+
+            pos_vector = self.PosEnc(x_t[:,0]).repeat(1, self.num_attr)
+
+            embs = [self.AttrEmbedder[idx](x_t[:, idx+1]) for idx in range(self.num_attr)]
+            attr_embs = torch.cat(embs, dim=1)  # Shape (num_edges, hidden_dim*num_attr)
+
+            node_emb = attr_embs + pos_vector  # Shape (num_edges, hidden_dim*num_attr)
+
+            h_x = self.NodeTransform(node_emb)  # Shape (num_nodes, hidden_dim)
+        
+        else:
+
+            pos_vector = self.PosEnc(x_t[:,0]).repeat(1, self.num_attr) # Shape (num_edges, hidden_dim)
+            h_x = self.NodeTransform(pos_vector)
+
+        return h_x, h_e
+
 
 
 class GraphEncoder(nn.Module):
