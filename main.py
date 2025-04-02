@@ -15,17 +15,25 @@ dd = ds.Dataset('BPIC12')
 
 
 #* For reviewing the graph augmentation modules
-cid = dd.graphs[1].caseid
-anchorlog = dd.EventLog.log[dd.EventLog.log['case_id'] == cid].copy()
-print(anchorlog)
-print(dd.graphs[1])
-print(dd.graphs[1].x_s)
-print(dd.graphs[1].edge_index_s)
-print(dd.graphs[1].edge_attr_s)
+# cid = dd.graphs[1].caseid
+# anchorlog = dd.EventLog.log[dd.EventLog.log['case_id'] == cid].copy()
+# print(anchorlog)
+# print(dd.graphs[1])
+# print(dd.graphs[1].x_s)
+# print(dd.graphs[1].edge_index_s)
+# print(dd.graphs[1].edge_attr_s)
 
-print("====================================")
-print(dd.graphs[1])
-print(dd.graphs[1].x_t)
-print(dd.graphs[1].edge_index_t)
-print(dd.graphs[1].edge_attr_t)
+# print("====================================")
+# print(dd.graphs[1])
+# print(dd.graphs[1].x_t)
+# print(dd.graphs[1].edge_index_t)
+# print(dd.graphs[1].edge_attr_t)
+
+import torch
+from model.GCEL import GCEL
+
+torch.manual_seed(1999)
+model = GCEL(epochs=30, batch_size=256, lr=0.001)
+
+model.fit(dd)
 

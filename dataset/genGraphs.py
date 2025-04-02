@@ -2,7 +2,7 @@
 @author: Y.J.Lee
 '''
 
-from utils.PairData import PairData
+from .PairData import PairData
 from .augmGraphs import genEventGraph, genActivityGraph
 import ray
 

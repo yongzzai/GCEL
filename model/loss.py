@@ -28,9 +28,6 @@ class InfoNCE(nn.Module):
             If negative_mode = 'unpaired', then negative_keys is a (M, D) Tensor.
             If None, then the negative keys for a sample are the positive keys for the other samples.
 
-    Returns:
-         Value of the InfoNCE Loss.
-
      Examples:
         >>> loss = InfoNCE()
         >>> batch_size, num_negative, embedding_size = 32, 48, 128

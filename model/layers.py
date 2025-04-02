@@ -5,6 +5,7 @@
 import torch
 import torch.nn as nn
 from torch_geometric.nn import TransformerConv, PositionalEncoding, MLP, Set2Set
+from utils.featmask import maskNodes
 
 
 class GraphEncoder(nn.Module):
@@ -25,13 +26,13 @@ class GraphEncoder(nn.Module):
         self.FirstViewPreLayer = FirstViewPreLayer(node_dim=node_dim, edge_dim=edge_dim, hidden_dim=hidden_dim)
         self.SecondViewPreLayer = SecondViewPreLayer(node_dim=edge_dim, edge_dim=node_dim, hidden_dim=hidden_dim)
 
-        self.Convs, self.DOs, self.LNs, self.Acts, self.DOs = self._SetLayers(hidden_dim, num_layers, dropout)
+        self.Convs, self.Lins, self.LNs, self.Acts, self.DOs = self._SetLayers(hidden_dim, num_layers, dropout)
 
         self.norm = nn.LayerNorm(hidden_dim)
         self.linear = nn.Linear(hidden_dim, hidden_dim)
-        self.pooling = Set2Set(hidden_dim, processing_steps=4)
+        self.pooling = Set2Set(hidden_dim, processing_steps=4)  # Shape (num_graphs, hidden_dim*2)
 
-        self.mlp = MLP([hidden_dim, hidden_dim*2, hidden_dim/2], norm=None)
+        self.mlp = MLP([hidden_dim*2, hidden_dim*4, int(hidden_dim/2)], norm=None)
     
     def _SetLayers(self, hidden_dim, num_layers, dropout):
 
@@ -54,16 +55,19 @@ class GraphEncoder(nn.Module):
     def forward(self, data, train:bool=True):
         '''
         input: Shape(num_nodes, hidden_dim), Shape(num_edges, hidden_dim)
+
+        _s: source graphs
+        _t: transformed graphs
         '''
         x_s, edge_index_s, edge_attr_s, batch_s = data.x_s, data.edge_index_s, data.edge_attr_s, data.x_s_batch
         x_t, edge_index_t, edge_attr_t, batch_t = data.x_t, data.edge_index_t, data.edge_attr_t, data.x_t_batch
 
         if train:
             # First view
-            x1, e1 = self.FirstViewPreLayer(x_s, edge_attr_s)
+            # First view is anchor graph, so add further augmentation
+            x1 = maskNodes(x=x_s, batch_idx=batch_s, p=0.3)
+            x1, e1 = self.FirstViewPreLayer(x1, edge_attr_s)
             
-            # TODO: masking node features of each graph in one batch
-
             # Second view
             x2, e2 = self.SecondViewPreLayer(x_t, edge_attr_t)
 
@@ -112,6 +116,7 @@ class GraphEncoder(nn.Module):
 
             return z1
 
+        # for computing loss
         dense_z1, dense_z2 = self.mlp(z1), self.mlp(z2)  # Shape (num_graphs, hidden_dim/2)
 
         return z1, z2, dense_z1, dense_z2
@@ -146,7 +151,7 @@ class FirstViewPreLayer(nn.Module):
         self.AttrEmbedder = nn.ModuleList([nn.Embedding(300, hidden_dim) for _ in range(self.num_attr)])   # Shape (num_events, hidden_dim*num_attr)
 
         self.EdgeTransform = nn.Sequential(
-                             nn.Linear(int(hidden_dim*self.num_attr),hidden_dim),
+                             nn.Linear(int(hidden_dim*self.num_attr) if self.num_attr > 0 else hidden_dim, hidden_dim),
                              nn.LayerNorm(hidden_dim))         # Shape (num_edges, hidden_dim)
     
     def forward(self, x_s, edge_attr_s):
@@ -167,7 +172,7 @@ class FirstViewPreLayer(nn.Module):
 
         else:
 
-            pos_vector = self.PosEnc(edge_attr_s[:,0]).repeat(1, self.num_attr)  # Shape (num_edges, hidden_dim)
+            pos_vector = self.PosEnc(edge_attr_s[:,0])  # Shape (num_edges, hidden_dim)
             h_e = self.EdgeTransform(pos_vector)
 
         return h_x, h_e     # Shape (num_nodes, hidden_dim), (num_edges, hidden_dim)
@@ -196,7 +201,7 @@ class SecondViewPreLayer(nn.Module):
         self.AttrEmbedder = nn.ModuleList([nn.Embedding(300, hidden_dim) for _ in range(self.num_attr)])
 
         self.NodeTransform = nn.Sequential(
-                             nn.Linear(int(hidden_dim*self.num_attr), hidden_dim),
+                             nn.Linear(int(hidden_dim*self.num_attr) if self.num_attr > 0 else hidden_dim, hidden_dim),
                              nn.LayerNorm(hidden_dim))          # Shape (num_nodes, hidden_dim)
         
         # For edges (activities)
@@ -221,7 +226,7 @@ class SecondViewPreLayer(nn.Module):
         
         else:
 
-            pos_vector = self.PosEnc(x_t[:,0]).repeat(1, self.num_attr) # Shape (num_edges, hidden_dim)
+            pos_vector = self.PosEnc(x_t[:,0]) # Shape (num_edges, hidden_dim)
             h_x = self.NodeTransform(pos_vector)
 
         return h_x, h_e     # Shape (num_nodes, hidden_dim), (num_edges, hidden_dim)

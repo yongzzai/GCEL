@@ -10,7 +10,7 @@ import numpy as np
 from itertools import chain
 
 from utils.EventLog import EventLog
-from utils.variants import GetVariantLabels
+from .setVariant import GetVariantLabels
 from .genGraphs import GenerateGraphs
 
 class Dataset(object):

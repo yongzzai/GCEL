@@ -1,7 +1,8 @@
 import torch
-from loss import InfoNCE
-from layers import GraphEncoder
+from .loss import InfoNCE
+from .layers import GraphEncoder
 from torch_geometric.loader import DataLoader
+from .variantSampler import NegativeSampler
 
 class GCEL:
 
@@ -38,25 +39,49 @@ class GCEL:
         
         loader = DataLoader(self.graphs, batch_size=self.batch_size, shuffle=True, follow_batch=['x_s','x_t'])
 
-        optimizer = torch.optim.AdamW(encoder.parameters(), lr=self.lr, weight_decay=1e-4)
+        optimizer = torch.optim.AdamW(encoder.parameters(), lr=self.lr, weight_decay=1e-5)
 
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=self.epochs, eta_min=0)
         
-        criterion = InfoNCE(temperature=0.1).to(self.device)
+        sampler = NegativeSampler(pad_mode='max')
+        criterion = InfoNCE(temperature=0.1, negative_mode='paired')
 
         for param in encoder.parameters():
             param.requires_grad = True
+        
+        all_loss = []
     
         for epoch in range(self.epochs):
 
             encoder.train()
-            total_loss = 0.0
+            epoch_loss = 0.0
 
             for batch in loader:
 
                 batch = batch.to(self.device)
 
-                #TODO
+                _, _, dense_z1, dense_z2 = encoder(batch, train=True)
+
+                negatives = sampler.forward(dense_z1, batch.varlabel)       # Shape(batch_size, M, hidden)
+
+                loss = criterion(dense_z1, dense_z2, negatives)
+
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                
+                epoch_loss += loss.item()
+
+            scheduler.step()
+            
+            all_loss.append(epoch_loss/len(loader)) # for visualization
+
+            print(f'Epoch {epoch+1}/{self.epochs}, Loss: {epoch_loss/len(loader):.4f}')
+        
+        for param in encoder.parameters():
+            param.requires_grad = False
+        
+        return encoder, all_loss
 
 
     def fit(self, dataset):
@@ -67,12 +92,13 @@ class GCEL:
         self.ndim = self.graphs[0].x_s.shape[1]
         self.edim = self.graphs[0].edge_attr_s.shape[1]
 
-        self.encoder = self.train()
+        self.encoder, self.losses = self.train()
 
 
+    def visualize(self):
 
-
-
+        #TODO: Make Various Visualizer in logger/visualizer.py
+        pass
 
 
 
