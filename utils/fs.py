@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).parent.parent
 EVENTLOG_DIR = os.path.join(ROOT_DIR,'eventlogs')
-
+SAVE_DIR = os.path.join(ROOT_DIR, 'saved')
 
 ATTR_KEYS = {
     'BPIC12':{'AttributeKeys':['name']},

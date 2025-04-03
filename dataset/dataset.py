@@ -17,12 +17,14 @@ class Dataset(object):
 
     def __init__(self, LogName):
 
+        self.LogName = LogName
+
         PrjPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         CachePath = os.path.join(PrjPath, 'eventlogs/cache')
 
         os.makedirs(CachePath, exist_ok=True)
         
-        self.EventLog = EventLog(LogName)
+        self.EventLog = EventLog(self.LogName)
         self.CacheFile = os.path.join(CachePath, f'Graph_{self.EventLog.logname}.pkl.gz')
         
         if not os.path.exists(self.CacheFile):

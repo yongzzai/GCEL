@@ -4,3 +4,4 @@ eventlogs/*.csv
 
 eventlogs/cache/*.pkl.gz
 scratch.ipynb
+/saved/params/*.pt
