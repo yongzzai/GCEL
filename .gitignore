@@ -1,4 +1,3 @@
-paper_work/
 /.vscode
 eventlogs/*.csv
 !eventlogs/.gitkeep

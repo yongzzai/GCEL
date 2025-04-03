@@ -29,7 +29,7 @@ class GCEL:
         self.batch_size = batch_size
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-    def train(self):
+    def train_gcel(self):
         
         encoder = GraphEncoder(node_dim=self.ndim, 
                                edge_dim=self.edim, 
@@ -92,7 +92,9 @@ class GCEL:
         self.ndim = self.graphs[0].x_s.shape[1]
         self.edim = self.graphs[0].edge_attr_s.shape[1]
 
-        self.encoder, self.losses = self.train()
+        encoder, losses = self.train_gcel()
+
+        return encoder, losses
 
 
     def visualize(self):
