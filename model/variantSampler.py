@@ -39,7 +39,7 @@ class NegativeSampler(torch.nn.Module):
                 neg_count = (label != lab).sum().item()
                 max_count = max(max_count, neg_count)
 
-            # print(max_count)
+            #print(f'maximum number of negative samples: {max_count}')
 
             NegChunks = []
 
@@ -96,6 +96,6 @@ class NegativeSampler(torch.nn.Module):
             
             negative_samples = torch.stack(NegChunks)   # Shape([batch_size, min_count, dim])
 
-            # print(negative_samples.shape)
+            #print(f'minimum number of negative samples: {min_count}')
 
             return negative_samples
