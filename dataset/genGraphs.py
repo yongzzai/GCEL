@@ -35,11 +35,19 @@ def GenerateGraphs(splitlog, onehot_dict, event_attrs) -> list:
         # Get Variant Label
         variant = sublog['@variant'].values[0]
 
-        # Store view1 and view2 graphs in a single pyg-Data object
-        GraphPair = PairData(x_s=g1.x, edge_index_s=g1.edge_index, edge_attr_s=g1.edge_attr,
-                              x_t=g2.x, edge_index_t=g2.edge_index, edge_attr_t=g2.edge_attr,
-                              varlabel = int(variant), caseid=caseid)
+        # Get Cluster Ground Truth
+        if 'clabel' in sublog.columns:
+            cluster_label = sublog['clabel'].values[0]
 
+            GraphPair = PairData(x_s=g1.x, edge_index_s=g1.edge_index, edge_attr_s=g1.edge_attr,
+                                  x_t=g2.x, edge_index_t=g2.edge_index, edge_attr_t=g2.edge_attr,
+                                  varlabel = int(variant), caseid=caseid, clabel=int(cluster_label))
+        else:
+            GraphPair = PairData(x_s=g1.x, edge_index_s=g1.edge_index, edge_attr_s=g1.edge_attr,
+                                  x_t=g2.x, edge_index_t=g2.edge_index, edge_attr_t=g2.edge_attr,
+                                  varlabel = int(variant), caseid=caseid)
+        
+        
         PairGraphs.append(GraphPair)
     
     return PairGraphs
