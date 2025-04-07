@@ -25,7 +25,7 @@ def plot_loss(losses, logname):
     plt.legend()
     plt.grid()
     
-    plt.savefig(SAVE_DIR + f'/figs/loss ({logname}).png', dpi=600)
+    plt.savefig(SAVE_DIR + f'/loss/loss ({logname}).png', dpi=600)
 
 
 def plot_tsne(embs, logname):
@@ -40,4 +40,4 @@ def plot_tsne(embs, logname):
     plt.scatter(tsne_results[:, 0], tsne_results[:, 1], s=2, alpha=0.5)
     plt.title('t-SNE Visualization of Embeddings')
     plt.grid()
-    plt.savefig(SAVE_DIR + f'/figs/TSNE ({logname}).png', dpi=600)
+    plt.savefig(SAVE_DIR + f'/tsne/TSNE ({logname}).png', dpi=600)
