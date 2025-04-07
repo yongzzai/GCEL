@@ -1,3 +1,8 @@
+'''
+@author: Y.J.Lee
+'''
+
+
 import torch
 import numpy as np
 
@@ -23,6 +28,17 @@ class GCEL:
         :param epochs: The number of epochs.
         :param lr: The learning rate.
         :param batch_size: The batch size.
+
+        if you want to train a new model,
+        >>> from model.GCEL import GCEL
+        >>> gcel = GCEL(*parameters)
+        >>> gcel.fit(dataset, save=True, visualize=True)
+
+        if you want to load a pre-trained model,
+        >>> from model.GCEL import GCEL
+        >>> gcel = GCEL()
+        >>> gcel.load_model(logname)
+        >>> gcel.get_embeddings(visualize=True)
         '''
 
         self.hidden_dim = hidden_dim
@@ -32,6 +48,7 @@ class GCEL:
         self.lr = lr
         self.batch_size = batch_size
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 
     def train(self):
         
@@ -81,35 +98,67 @@ class GCEL:
         for param in encoder.parameters():
             param.requires_grad = False
         
-        return encoder, all_loss
-
-
-    def fit(self, dataset):
+        encoder.eval()
+        embeddings = []
+        for batch in loader:
+            batch = batch.to(self.device)
+            embs = encoder(batch, train=False)
+            embeddings.append(embs.cpu().detach().numpy())
         
+        embeddings = np.concatenate(embeddings, axis=0)
+        
+        return encoder, all_loss, embeddings
+
+    def fit(self, dataset, save:bool = False, visualize:bool = False):
+        '''
+        Fit the model to the dataset.
+
+        param dataset: The dataset object to be used for training.
+        param save: If True, save the model parameters and loss plot.
+        param visualize: If True, save the loss curve and TSNE visualization.
+        '''
+
+        self.logname = dataset.LogName
         self.graphs = dataset.graphs
 
         # Based on the first view
         self.ndim = self.graphs[0].x_s.shape[1]
         self.edim = self.graphs[0].edge_attr_s.shape[1]
 
-        encoder, losses = self.train()
+        encoder, losses, embeddings = self.train()
 
-        self.logname = dataset.LogName
+        # Save the trained model and loss plot
+        if save:
+            torch.save({
+                'params': encoder.state_dict(),
+                'hidden_dim': self.hidden_dim,
+                'num_layers': self.num_layers,
+                'dropout': self.dropout,
+                'node_dim': self.ndim,
+                'edge_dim': self.edim}, SAVE_DIR + f'/params/params_{self.logname}.pt')
+            
+            print(f"Model saved at {SAVE_DIR}/params/params_{self.logname}.pt")
+        
+        if visualize:
+            plot_loss(losses, self.logname)
+            plot_tsne(embeddings, self.logname)
+            print(f"Loss plot saved at {SAVE_DIR}/loss/loss ({self.logname}).png")
+            print(f"TSNE plot saved at {SAVE_DIR}/tsne/tsne ({self.logname}).png")
 
-        self.save_path = SAVE_DIR + f'/params/Enc ({self.logname}).pt'
-        torch.save({
-            'params': encoder.state_dict(),
-            'hidden_dim': self.hidden_dim,
-            'num_layers': self.num_layers,
-            'dropout': self.dropout,
-            'node_dim': self.ndim,
-            'edge_dim': self.edim}, self.save_path)
-                
-        plot_loss(losses, self.logname)
+    def load_model(self, logname:str):
+        '''
+        Load the model from the saved path.
+        >> logname: The name of the log.
+        >> GCEL = GCEL()
+        >> model = GCEL.load_model(logname)
+        '''
 
-    def load(self):
+        save_path = SAVE_DIR + f'/params/params_{logname}.pt'
 
-        checkpoint = torch.load(self.save_path, map_location=self.device)
+        if not os.path.exists(save_path):
+            raise ValueError(f"Model not found at {save_path}. Please train the model first.")
+
+        checkpoint = torch.load(save_path, map_location=self.device)
         model = GraphEncoder(node_dim=checkpoint['node_dim'],
                              edge_dim=checkpoint['edge_dim'],
                              hidden_dim=checkpoint['hidden_dim'], 
@@ -118,25 +167,13 @@ class GCEL:
         
         model.load_state_dict(checkpoint['params'])
         
-        model.eval()
         for param in model.parameters():
             param.requires_grad = False
+
         return model
 
+    def eval_clustering(self):
+        pass
 
-    def visualize(self):
-
-        model = self.load()
-        
-        loader = DataLoader(self.graphs, batch_size=self.batch_size, shuffle=False, follow_batch=['x_s','x_t'])
-        
-        embeddings = []
-        for batch in loader:
-            batch = batch.to(self.device)
-
-            emb = model(batch, train=False)
-            embeddings.append(emb.cpu().detach().numpy())
-
-        embeddings = np.concatenate(embeddings, axis=0)
-    
-        TSNEembs(embeddings, self.logname)
+    def eval_outcome_pred(self):
+        pass

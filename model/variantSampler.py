@@ -1,3 +1,8 @@
+'''
+@author: Y.J.Lee
+'''
+
+
 import torch
 
 class NegativeSampler(torch.nn.Module):

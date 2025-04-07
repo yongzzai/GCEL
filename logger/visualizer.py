@@ -1,3 +1,7 @@
+'''
+@author: Y.J.Lee
+'''
+
 import matplotlib.pyplot as plt
 from utils.fs import SAVE_DIR
 from sklearn.manifold import TSNE
@@ -22,10 +26,9 @@ def plot_loss(losses, logname):
     plt.grid()
     
     plt.savefig(SAVE_DIR + f'/figs/loss ({logname}).png', dpi=600)
-    print(f"Loss plot saved at {SAVE_DIR}/figs/loss ({logname}).png")
 
 
-def TSNEembs(embs, logname):
+def plot_tsne(embs, logname):
     '''
     Plot the t-SNE embeddings.
     '''
@@ -38,4 +41,3 @@ def TSNEembs(embs, logname):
     plt.title('t-SNE Visualization of Embeddings')
     plt.grid()
     plt.savefig(SAVE_DIR + f'/figs/TSNE ({logname}).png', dpi=600)
-    print(f"t-SNE plot saved at {SAVE_DIR}/figs/TSNE ({logname}).png")

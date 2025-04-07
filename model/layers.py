@@ -148,7 +148,7 @@ class FirstViewPreLayer(nn.Module):
         self.num_attr = edge_dim - 1    # first dimension is the event ordering
 
         self.PosEnc = PositionalEncoding(out_channels=hidden_dim)
-        self.AttrEmbedder = nn.ModuleList([nn.Embedding(1000, hidden_dim) for _ in range(self.num_attr)])   # Shape (num_events, hidden_dim*num_attr)
+        self.AttrEmbedder = nn.ModuleList([nn.Embedding(10000, hidden_dim) for _ in range(self.num_attr)])   # Shape (num_events, hidden_dim*num_attr)
 
         self.EdgeTransform = nn.Sequential(
                              nn.Linear(int(hidden_dim*self.num_attr) if self.num_attr > 0 else hidden_dim, hidden_dim),
@@ -198,7 +198,7 @@ class SecondViewPreLayer(nn.Module):
         self.num_attr = node_dim - 1   # first dimension is the event ordering
 
         self.PosEnc = PositionalEncoding(out_channels=hidden_dim)
-        self.AttrEmbedder = nn.ModuleList([nn.Embedding(1000, hidden_dim) for _ in range(self.num_attr)])
+        self.AttrEmbedder = nn.ModuleList([nn.Embedding(10000, hidden_dim) for _ in range(self.num_attr)])
 
         self.NodeTransform = nn.Sequential(
                              nn.Linear(int(hidden_dim*self.num_attr) if self.num_attr > 0 else hidden_dim, hidden_dim),
