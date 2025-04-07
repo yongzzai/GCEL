@@ -12,6 +12,8 @@ from torch_geometric.loader import DataLoader
 from .variantSampler import NegativeSampler
 from utils.fs import SAVE_DIR
 from logger.visualizer import *
+from downstream.Clustering import DS_Clustering
+
 
 class GCEL:
 
@@ -145,6 +147,7 @@ class GCEL:
             print(f"Loss plot saved at {SAVE_DIR}/loss/loss ({self.logname}).png")
             print(f"TSNE plot saved at {SAVE_DIR}/tsne/tsne ({self.logname}).png")
 
+
     def load_model(self, logname:str):
         '''
         Load the model from the saved path.
@@ -172,8 +175,17 @@ class GCEL:
 
         return model
 
-    def eval_clustering(self):
-        pass
+
+    def clustering(self):
+        model = self.load_model(self.logname)
+        model.eval()
+        
+        nmi, ari, _, _ = DS_Clustering(model, self.graphs, self.device)
+        print(f"Normalized Mutual Information: {nmi:.4f},\n Adjusted_Rand_Score: {ari:.4f}")
+
+        #TODO: 클러스터링 결과 시각화 추가
+
+
 
     def eval_outcome_pred(self):
         pass
