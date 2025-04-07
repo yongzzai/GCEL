@@ -81,6 +81,9 @@ class GraphEncoder(nn.Module):
                 h1 = self.Acts[idx](h1)
                 h1 = self.DOs[idx](h1)
 
+                # Residual connection
+                h1 = h1 + x1_in
+
                 x2_in = x2 if idx == 0 else h2
 
                 h2 = self.Convs[idx](x2_in, edge_index_t, e2)
@@ -88,6 +91,9 @@ class GraphEncoder(nn.Module):
                 h2 = self.LNs[idx](h2)
                 h2 = self.Acts[idx](h2)
                 h2 = self.DOs[idx](h2)
+
+                # Residual connection
+                h2 = h2 + x2_in
             
             z1, z2 = self.norm(h1), self.norm(h2)  # Shape (num_nodes, hidden_dim), (num_edges, hidden_dim)
             z1, z2 = self.linear(z1), self.linear(z2)  # Shape (num_nodes, hidden_dim), (num_edges, hidden_dim)
@@ -230,3 +236,33 @@ class SecondViewPreLayer(nn.Module):
             h_x = self.NodeTransform(pos_vector)
 
         return h_x, h_e     # Shape (num_nodes, hidden_dim), (num_edges, hidden_dim)
+
+
+# For outcome prediction and anomaly detection
+class DownstreamLayer(nn.Module):
+    def __init__(self, latent_dim:int = 64, dropout:float = 0.3):
+        super(DownstreamLayer, self).__init__()
+        '''
+        *Input: Shape(num_graphs, hidden_dim*2)
+        '''
+        self.linear1 = nn.Sequential(
+            nn.Linear(latent_dim, latent_dim),
+            nn.GELU(),
+            nn.Dropout(dropout)
+        )
+        self.linear2 = nn.Sequential(
+            nn.Linear(latent_dim, latent_dim),
+            nn.GELU(),
+            nn.Dropout(dropout)
+        )
+        self.output = nn.Linear(latent_dim, 1)
+    
+    def forward(self, x):
+        '''
+        :param x: Shape(num_graphs, hidden_dim*2)
+        '''
+        x = self.linear1(x)  # Shape(num_graphs, hidden_dim)
+        x = self.linear2(x)  # Shape(num_graphs, hidden_dim)
+        x = self.output(x)   # Shape(num_graphs, 1)
+
+        return x
