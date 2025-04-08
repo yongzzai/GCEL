@@ -47,6 +47,7 @@ def GenerateGraphs(splitlog, onehot_dict, event_attrs) -> list:
                                   x_t=g2.x, edge_index_t=g2.edge_index, edge_attr_t=g2.edge_attr,
                                   varlabel = int(variant), caseid=caseid)
         
+        #TODO: Outcome prediction label
         
         PairGraphs.append(GraphPair)
     

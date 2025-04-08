@@ -5,15 +5,14 @@
 
 import torch
 import numpy as np
-
-from .loss import InfoNCE
-from .layers import GraphEncoder
 from torch_geometric.loader import DataLoader
-from .variantSampler import NegativeSampler
+
+
+from .layers import GraphEncoder
 from utils.fs import SAVE_DIR
 from logger.visualizer import *
 from downstream.Clustering import DS_Clustering
-
+from trainer.trainer import Trainer
 
 class GCEL:
 
@@ -22,7 +21,7 @@ class GCEL:
                  epochs:int = 20, lr:float = 0.001, batch_size:int = 128):
         
         '''
-        Graph Contrastive Event log Learning (GCEL) Framework
+        Graph Contrastive Event log Learning (GCEL)
         
         :param hidden_dim: The dimension of the hidden.
         :param num_layers: The number of layers.
@@ -31,16 +30,9 @@ class GCEL:
         :param lr: The learning rate.
         :param batch_size: The batch size.
 
-        if you want to train a new model,
         >>> from model.GCEL import GCEL
         >>> gcel = GCEL(*parameters)
         >>> gcel.fit(dataset, save=True, visualize=True)
-
-        if you want to load a pre-trained model,
-        >>> from model.GCEL import GCEL
-        >>> gcel = GCEL()
-        >>> gcel.load_model(logname)
-        >>> gcel.get_embeddings(visualize=True)
         '''
 
         self.hidden_dim = hidden_dim
@@ -50,7 +42,6 @@ class GCEL:
         self.lr = lr
         self.batch_size = batch_size
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
 
     def train(self):
         
@@ -66,50 +57,22 @@ class GCEL:
 
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=self.epochs, eta_min=0)
         
-        sampler = NegativeSampler(pad_mode='max')
-        criterion = InfoNCE(temperature=0.1, negative_mode='paired')
-
-        for param in encoder.parameters():
-            param.requires_grad = True
+        all_loss = Trainer(self.epochs, encoder, loader, self.device, optimizer, scheduler)
         
-        all_loss = []
-    
-        for epoch in range(self.epochs):
-
-            encoder.train()
-            epoch_loss = 0.0
-
-            for batch in loader:
-                batch = batch.to(self.device)
-
-                _, _, dense_z1, dense_z2 = encoder(batch, train=True)
-                negatives = sampler(dense_z1, batch.varlabel)       # Shape(batch_size, M, hidden)
-                
-                loss = criterion(dense_z1, dense_z2, negatives)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-
-                epoch_loss += loss.item()
-
-            scheduler.step()
-            all_loss.append(epoch_loss/len(loader)) # for visualization
-
-            print(f'Epoch {epoch+1}/{self.epochs}, Loss: {epoch_loss/len(loader):.4f}')
+        embeddings = self.get_embs(loader, encoder)
         
-        for param in encoder.parameters():
-            param.requires_grad = False
-        
+        return encoder, all_loss, embeddings
+
+
+    def get_embs(self, loader, encoder):
         encoder.eval()
         embeddings = []
         for batch in loader:
             batch = batch.to(self.device)
             embs = encoder(batch, train=False)
             embeddings.append(embs.cpu().detach().numpy())
-        
         embeddings = np.concatenate(embeddings, axis=0)
-        
-        return encoder, all_loss, embeddings
+        return embeddings
 
     def fit(self, dataset, save:bool = False, visualize:bool = False):
         '''
@@ -149,12 +112,6 @@ class GCEL:
 
 
     def load_model(self, logname:str):
-        '''
-        Load the model from the saved path.
-        >> logname: The name of the log.
-        >> GCEL = GCEL()
-        >> model = GCEL.load_model(logname)
-        '''
 
         save_path = SAVE_DIR + f'/params/params_{logname}.pt'
 
@@ -184,8 +141,6 @@ class GCEL:
         print(f"Normalized Mutual Information: {nmi:.4f},\n Adjusted_Rand_Score: {ari:.4f}")
 
         #TODO: 클러스터링 결과 시각화 추가
-
-
 
     def eval_outcome_pred(self):
         pass

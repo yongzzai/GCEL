@@ -11,7 +11,7 @@ from dataset.dataset import Dataset
 
 
 def main():
-    parser = argparse.ArgumentParser(description='run')
+    parser = argparse.ArgumentParser(description='Training GCEL')
     parser.add_argument('-hd', '--hidden_dim', type=int, default=64, help='hidden dimension')
     parser.add_argument('-nl', '--num_layers', type=int, default=1, help='number of layers')
     parser.add_argument('-d', '--dropout', type=float, default=0.2, help='dropout rate')
@@ -20,9 +20,9 @@ def main():
     parser.add_argument('-b', '--batch_size', type=int, default=256, help='batch size')
     args = parser.parse_args()
 
-    dataset_names = [name.split('.')[0] for name in os.listdir(EVENTLOG_DIR) if name.endswith('.csv')]
+    #dataset_names = [name.split('.')[0] for name in os.listdir(EVENTLOG_DIR) if name.endswith('.csv')]
 
-    # dataset_names = ['BPCI12']
+    dataset_names = ['BPIC12']
 
     print(f'all datasets:\n >> {dataset_names}')
 

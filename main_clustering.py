@@ -20,9 +20,9 @@ def main():
     parser.add_argument('-b', '--batch_size', type=int, default=256, help='batch size')
     args = parser.parse_args()
 
-    # dataset_names = [name.split('.')[0] for name in os.listdir(EVENTLOG_DIR) if name.endswith('.csv')]
+    dataset_names = [name.split('.')[0] for name in os.listdir(EVENTLOG_DIR) if (name.endswith('.csv'))&(name.split('.')[0].endswith('c'))]
 
-    dataset_names = ['BPIC17c']
+    # dataset_names = ['BPIC17c']
 
     print(f'all datasets:\n >> {dataset_names}')
 
