@@ -11,6 +11,10 @@ from dataset.dataset import Dataset
 
 
 def main():
+
+    torch.cuda.init()
+    torch.cuda.empty_cache()
+
     parser = argparse.ArgumentParser(description='run')
     parser.add_argument('-hd', '--hidden_dim', type=int, default=64, help='hidden dimension')
     parser.add_argument('-nl', '--num_layers', type=int, default=1, help='number of layers')
@@ -22,7 +26,7 @@ def main():
 
     dataset_names = [name.split('.')[0] for name in os.listdir(EVENTLOG_DIR) if (name.endswith('.csv'))&(name.split('.')[0].endswith('c'))]
 
-    # dataset_names = ['BPIC17c']
+    # dataset_names = ['BPIC15c', 'BPIC20c']
 
     print(f'all datasets:\n >> {dataset_names}')
 
@@ -33,8 +37,8 @@ def main():
 
         torch.manual_seed(1999)
         model = GCEL(**vars(args))
-        model.fit(dataset, save=True, visualize=True)
-        model.clustering()
+        model.fit(dataset, save=True, visualize=False)
+        model.clustering(visualize=True)
 
 
 if __name__ == '__main__':

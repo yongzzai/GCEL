@@ -65,7 +65,7 @@ class GraphEncoder(nn.Module):
         if train:
             # First view
             # First view is anchor graph, so add further augmentation
-            x1 = maskNodes(x=x_s, batch_idx=batch_s, p=0.3)
+            x1 = maskNodes(x=x_s, batch_idx=batch_s, p=0.2)
             x1, e1 = self.FirstViewPreLayer(x1, edge_attr_s)
             
             # Second view

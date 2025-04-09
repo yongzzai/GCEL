@@ -6,6 +6,9 @@ from torch_geometric.loader import DataLoader
 from sklearn.cluster import KMeans
 from utils.eval import evaluate_clustering
 import numpy as np
+import warnings
+
+warnings.filterwarnings("ignore")
 
 
 def DS_Clustering(model, graphs, device):
@@ -28,4 +31,4 @@ def DS_Clustering(model, graphs, device):
     clabels = clabels.flatten()
     nmi, ari = evaluate_clustering(clabels, preds)
 
-    return nmi, ari, preds, embeddings
+    return nmi, ari, preds, clabels, embeddings

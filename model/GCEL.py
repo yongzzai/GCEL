@@ -133,14 +133,15 @@ class GCEL:
         return model
 
 
-    def clustering(self):
+    def clustering(self, visualize:bool = False):
         model = self.load_model(self.logname)
         model.eval()
         
-        nmi, ari, _, _ = DS_Clustering(model, self.graphs, self.device)
+        nmi, ari, preds, labels, embeddings = DS_Clustering(model, self.graphs, self.device)
         print(f"Normalized Mutual Information: {nmi:.4f},\n Adjusted_Rand_Score: {ari:.4f}")
 
-        #TODO: 클러스터링 결과 시각화 추가
+        if visualize:
+            plot_clusters(preds, labels, embeddings, self.logname)
 
     def eval_outcome_pred(self):
         pass

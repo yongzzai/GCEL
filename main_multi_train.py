@@ -11,6 +11,10 @@ from dataset.dataset import Dataset
 
 
 def main():
+    
+    torch.cuda.init()
+    torch.cuda.empty_cache()
+
     parser = argparse.ArgumentParser(description='Training GCEL')
     parser.add_argument('-hd', '--hidden_dim', type=int, default=64, help='hidden dimension')
     parser.add_argument('-nl', '--num_layers', type=int, default=1, help='number of layers')

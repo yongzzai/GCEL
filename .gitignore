@@ -1,7 +1,7 @@
-/.vscode
 eventlogs/*.csv
 !eventlogs/.gitkeep
 
 eventlogs/cache/*.pkl.gz
 scratch.ipynb
-/saved/params/*.pt
+/saved
+memo.txt

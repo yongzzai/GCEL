@@ -5,21 +5,7 @@
 from .variantSampler import NegativeSampler
 from .loss import InfoNCE
 
-def Trainer(epochs, encoder, loader, device, optimizer, scheduler):
-    """
-    Execute the training for the GCEL.
-    
-    Args:
-        epochs (int): Number of epochs to train for
-        encoder (GraphEncoder): The model encoder
-        loader (DataLoader): DataLoader containing the graph data
-        device (torch.device): Device to run training on
-        optimizer: The optimizer for training
-        scheduler: Learning rate scheduler
-        
-    Returns:
-        list: List of average loss values for each epoch
-    """
+def Trainer(epochs, encoder, loader, device, optimizer, scheduler) -> list:
 
     sampler = NegativeSampler(pad_mode='max')
     criterion = InfoNCE(temperature=0.1, negative_mode='paired')
