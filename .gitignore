@@ -3,5 +3,5 @@ eventlogs/*.csv
 
 eventlogs/cache/*.pkl.gz
 scratch.ipynb
-/saved
+saved/*
 memo.txt
