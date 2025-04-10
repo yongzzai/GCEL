@@ -6,7 +6,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from utils.fs import SAVE_DIR
+from utils.config import SAVE_DIR
 from sklearn.manifold import TSNE
 
 

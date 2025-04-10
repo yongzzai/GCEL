@@ -6,7 +6,7 @@ import os
 import torch
 import argparse
 from model.GCEL import GCEL
-from utils.fs import EVENTLOG_DIR
+from utils.config import EVENTLOG_DIR
 from dataset.dataset import Dataset
 
 

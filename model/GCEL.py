@@ -9,10 +9,11 @@ from torch_geometric.loader import DataLoader
 
 
 from .layers import GraphEncoder
-from utils.fs import SAVE_DIR
+from utils.config import SAVE_DIR
 from logger.visualizer import *
 from downstream.Clustering import DS_Clustering
-from trainer.trainer import Trainer
+from .trainer.trainer import Trainer
+
 
 class GCEL:
 

@@ -5,4 +5,5 @@ eventlogs/cache/*.pkl.gz
 scratch.ipynb
 saved/*
 memo.txt
+idea.txt
 results/*.csv

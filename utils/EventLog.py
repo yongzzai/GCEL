@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 import pandas as pd
 import numpy as np
-from utils.fs import EVENTLOG_DIR, ATTR_KEYS
+from utils.config import EVENTLOG_DIR, ATTR_KEYS
 
 from typing import Optional
 
