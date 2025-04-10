@@ -143,5 +143,12 @@ class GCEL:
         if visualize:
             plot_clusters(preds, labels, embeddings, self.logname)
 
+        return nmi, ari
+    
+    # def discovery(self, visualize:bool = False):
+    #     model = self.load_model(self.logname)
+    #     model.eval()
+
+
     def eval_outcome_pred(self):
         pass

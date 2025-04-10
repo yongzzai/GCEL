@@ -11,6 +11,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
+# to cluster the embeddings using KMeans
 def DS_Clustering(model, graphs, device):
     '''
     Clustering the embeddings using KMeans.

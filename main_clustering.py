@@ -6,8 +6,9 @@ import os
 import torch
 import argparse
 from model.GCEL import GCEL
-from utils.fs import EVENTLOG_DIR
+from utils.fs import EVENTLOG_DIR, RESULT_DIR
 from dataset.dataset import Dataset
+import pandas as pd
 
 
 def main():
@@ -26,7 +27,11 @@ def main():
 
     dataset_names = [name.split('.')[0] for name in os.listdir(EVENTLOG_DIR) if (name.endswith('.csv'))&(name.split('.')[0].endswith('c'))]
 
-    # dataset_names = ['BPIC15c', 'BPIC20c']
+    results_df = pd.DataFrame(
+                columns=['dataset',
+                         'hidden_dim', 'num_layers', 'dropout',
+                         'epochs', 'learning_rate', 'batch_size',
+                         'nmi', 'ari'])
 
     print(f'all datasets:\n >> {dataset_names}')
 
@@ -37,8 +42,20 @@ def main():
 
         torch.manual_seed(1999)
         model = GCEL(**vars(args))
-        model.fit(dataset, save=True, visualize=False)
-        model.clustering(visualize=True)
+        model.fit(dataset, save=True, visualize=True)
+        nmi, ari = model.clustering(visualize=True)
+
+        new_row = pd.DataFrame(
+                    {'dataset': [d],
+                    'hidden_dim': [args.hidden_dim], 'num_layers': [args.num_layers], 'dropout': [args.dropout],
+                    'epochs': [args.epochs], 'learning_rate': [args.lr], 'batch_size': [args.batch_size],
+                    'nmi': [nmi], 'ari': [ari]})
+        
+        results_df = pd.concat([results_df, new_row], ignore_index=True)
+
+        results_path = os.path.join(RESULT_DIR, 'clustering_results.csv')
+        results_df.to_csv(results_path, index=False)
+
 
 
 if __name__ == '__main__':
